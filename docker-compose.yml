@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: daily_pass
+      POSTGRES_PASSWORD: daily_pass
+      POSTGRES_DB: daily_pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daily_pass -d daily_pass"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  platform-mock:
+    build: ./platform-mock
+    ports:
+      - "8081:8080"
+    environment:
+      YII_DEBUG: "false"
+      YII_ENV: prod
+      COOKIE_VALIDATION_KEY: local-dev-cookie-key
+    healthcheck:
+      test: ["CMD", "php", "/app/bin/healthcheck.php"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  service:
+    build: ./service
+    ports:
+      - "8080:8080"
+    environment:
+      YII_DEBUG: "false"
+      YII_ENV: prod
+      COOKIE_VALIDATION_KEY: local-dev-cookie-key
+      PLATFORM_BASE_URL: http://platform-mock:8080
+      DB_DSN: pgsql:host=db;port=5432;dbname=daily_pass;connect_timeout=2
+      DB_USER: daily_pass
+      DB_PASSWORD: daily_pass
+    depends_on:
+      db:
+        condition: service_healthy
+      platform-mock:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "/app/bin/healthcheck.php"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
