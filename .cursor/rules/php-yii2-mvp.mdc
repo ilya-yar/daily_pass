@@ -1,0 +1,310 @@
+---
+description: Mandatory PHP 8.2+ / Yii2 MVP contract — reliability, architecture, security, and tests
+alwaysApply: true
+---
+
+# AGENTS.md — AI Agent Rules for PHP 8.2+ / Yii2 Development (MVP)
+
+> A mandatory contract for the agent. Priority in case of conflict:
+> **reliability → security → correctness → tests → simplicity**.
+> This is an MVP: choose the simplest solution that works reliably. No premature optimization and no "room for scaling" (YAGNI).
+
+---
+
+## 1. Core Principle: Reliability and Fault Tolerance
+
+Before writing code, the agent answers these questions:
+
+1. What happens if the operation fails midway?
+2. What happens if it is called twice (retry, double click, redelivery)?
+3. What happens if it is called concurrently?
+4. What happens if an external service is unavailable or slow?
+5. How will we find out about the problem (logs)?
+
+If the code has no answer to any of these questions, the implementation is not complete.
+
+### Mandatory Practices
+
+- **Transactions**: an operation that changes multiple records runs in a single transaction. External HTTP calls inside a transaction are forbidden.
+- **Idempotency**: operations that may arrive more than once (webhooks, queue jobs, payments) must not create duplicates — use unique indexes, current-state checks, idempotency keys.
+- **Timeouts**: every external call (HTTP, Redis, third-party API) has explicit connect/read timeouts.
+- **Retry**: only for idempotent operations and transient errors, with a limited number of attempts and a delay between them (backoff).
+- **Degradation**: failure of a secondary dependency (cache, notifications, analytics) must not break the main flow.
+- **Queue**: long-running and unreliable operations (email, integrations, webhooks) run through a queue, not within the HTTP request.
+- **Concurrency**: for critical updates, use optimistic locking (a `version` field) or `SELECT ... FOR UPDATE`.
+- **Validation at the boundaries**: all external data (HTTP, CLI, queue, third-party API responses) is treated as untrusted and validated.
+- **Fail fast**: an invalid state results in an immediate exception.
+- **Health check**: the `/health` endpoint checks DB availability (and queue/cache, if used).
+
+### Error Handling
+
+- Empty `catch` blocks and `catch (\Throwable) {}` are forbidden.
+- Catch an exception only if you can do something meaningful with it (retry, fallback, rollback, convert). Otherwise, let it propagate; when wrapping, preserve `previous`.
+- Domain exceptions (`OrderAlreadyPaidException`) are separate from infrastructure exceptions (`ExternalServiceUnavailableException`).
+- The user gets a safe message; details (SQL, stack trace, paths) go only to the logs.
+- Queue jobs that exhausted their retries are not lost: they stay in a failed-jobs storage and are logged with context.
+
+---
+
+## 2. Tooling
+
+- PHP ≥ 8.2, `declare(strict_types=1);` in every file, PSR-12, PSR-4.
+- Yii2, dependencies via Composer, `composer.lock` committed to the repository.
+- Tests: **Codeception** (unit / integration (functional) / api).
+- Static analysis: **PHPStan** (level ≥ 8).
+- Code style: **PHP-CS-Fixer**.
+- Configuration and secrets come from ENV and never enter the repository.
+
+Composer scripts (if missing, the agent creates them in the first task):
+
+```json
+{
+  "scripts": {
+    "cs:check": "php-cs-fixer fix --dry-run --diff",
+    "cs:fix": "php-cs-fixer fix",
+    "stan": "phpstan analyse --memory-limit=1G",
+    "test": "codecept run --fail-fast",
+    "check": ["@cs:check", "@stan", "@test"]
+  }
+}
+```
+
+---
+
+## 3. Architecture: Clean Architecture (Without Excess)
+
+Dependencies point inward only: `Presentation / Infrastructure → Application → Domain`.
+
+- **Domain**: pure PHP (entities, value objects, enums, domain services, repository interfaces). Knows nothing about Yii2, the DB, or HTTP.
+- **Application**: use case classes (one class — one scenario), ports for external services, DTOs. The transaction boundary lives here.
+- **Infrastructure**: repositories, ActiveRecord, HTTP clients, queue.
+- **Presentation**: controllers, request forms, console commands — thin, with no business logic and no SQL.
+
+Structure (by business module):
+
+```
+src/<Module>/
+  Domain/          # Model, Repository (interfaces), Exception
+  Application/     # UseCase, Port, Dto
+  Infrastructure/  # Persistence (AR + repositories), Gateway, Queue
+  Presentation/    # Http, Console
+tests/ Unit/ Integration/ Api/
+```
+
+Rules:
+
+- ActiveRecord lives only in Infrastructure as a storage mechanism. For simple CRUD parts, a simplification is acceptable (AR used directly in a use case), but it must be a conscious decision recorded in a short note in `docs/decisions.md`.
+- Dependencies are injected via the constructor (Yii2 DI container). `Yii::$app` and `Yii::$container->get()` are forbidden in Domain and Application.
+- Time and ID generation go through interfaces (`Clock`, `IdGenerator`) to keep the code testable.
+- Reads (lists, reports) may go directly through the Query Builder into DTOs, without building domain objects.
+
+### Principles and Patterns
+
+Principles: SOLID, KISS, YAGNI, DRY (without fanaticism), Tell Don't Ask, Composition over Inheritance.
+
+Apply a pattern only if it solves a real problem:
+
+| Pattern | When |
+|---|---|
+| Repository | Data access; interface in Domain, implementation in Infrastructure |
+| Value Object | `Money`, `Email`, `Quantity` — immutable, self-validating (`readonly`) |
+| Use Case / Command Handler | One scenario — one class |
+| Strategy | Instead of `if/switch` on a type (pricing, payment providers) |
+| State (enum + transition methods) | Statuses with restricted transitions |
+| Adapter / Gateway | Isolating external APIs |
+| Factory | Complex object creation |
+| Domain Events / Yii events | Reacting to facts (`OrderPaid`) |
+
+Do not overcomplicate: no Saga, Outbox, CQRS with separate stores, or event sourcing at the MVP stage.
+
+---
+
+## 4. Yii2 Best Practices
+
+- **Controllers** are thin: accept → validate the form → call the use case → return the response.
+- **Request forms** (`yii\base\Model`) are separate from AR; `load()` only on forms (protection against mass assignment).
+- **Access**: `AccessControl`/RBAC on every action + resource ownership check (IDOR protection). `VerbFilter` for HTTP methods.
+- **API**: a unified error format, correct HTTP statuses, pagination for lists, token authentication.
+- **Database**:
+  - only parameterized queries; SQL concatenation is forbidden;
+  - invariants are duplicated in the DB (`UNIQUE`, `FOREIGN KEY`, `NOT NULL`);
+  - indexes on search fields and foreign keys;
+  - avoid N+1 (`with()`/`joinWith()`).
+- **Migrations**: every schema change goes through `yii migrate/create`, with `safeUp`/`safeDown`, no business logic, and no application AR models.
+- **Queues** (`yii2-queue`): a job is a thin adapter; the payload contains only IDs and simple data; the number of attempts is limited; errors are logged.
+- **Console commands**: correct exit codes, error logging.
+- **Cache** is only an optimization; the code works without it too.
+- **Logs**: PSR-3, levels chosen by meaning, no passwords, tokens, or personal data; error logs contain context (entity ID, request ID).
+- **Production**: `YII_DEBUG=false`, `YII_ENV=prod`.
+- **Views**: always `Html::encode()`.
+- Never edit `vendor/`; extend via behaviors, events, DI.
+
+---
+
+## 5. Code Standards
+
+- Types everywhere (parameters, return values, properties); `mixed` only with a reason.
+- `final` by default; `readonly` for VOs/DTOs; `enum` instead of string constants; `match` instead of long `switch`.
+- Short methods (guideline ≤ 20 lines), ≤ 4 arguments (otherwise use a DTO).
+- Names in English, taken from the business domain language. No `Helper`/`Util`/`Manager` without a clear responsibility.
+- Comments explain "why", not "what". Commented-out code is not committed.
+- Money is stored in minor units (int) or via a dedicated library — **never `float`**.
+- DB time is UTC; in code use `DateTimeImmutable`.
+- Forbidden: `@` error suppression, `eval`, `extract`, `global`, `die/exit`, `unserialize` on external data.
+
+---
+
+## 6. Security (Minimum for the MVP)
+
+- Input validation, output escaping, parameterized SQL.
+- Passwords — `Yii::$app->security->generatePasswordHash()`; tokens — `generateRandomString()` / `random_bytes`.
+- Permissions are checked server-side for every action.
+- File uploads: check type and size, random names, store outside the webroot.
+- CSRF enabled for web; rate limiting on login and sensitive endpoints.
+- Secrets are never committed (`.env`, keys, tokens).
+- New dependencies are added only when necessary; do a quick check of maintenance status and license beforehand.
+
+---
+
+## 7. Testing (Mandatory)
+
+> **All implemented logic is covered by automated tests. Before every commit the agent runs the checks; committing with failing tests is forbidden.**
+
+### Rules
+
+- New functionality — tests are written together with the code (TDD preferred).
+- Bug fix — first a regression test that reproduces the bug, then the fix.
+- Behavior change — tests are updated in the same commit.
+- It is forbidden to delete, weaken, or skip (`skip`) tests in order to get a "green" result.
+
+### Levels
+
+| Level | What is tested | Requirements |
+|---|---|---|
+| **Unit** | Domain and Application (use cases with port fakes) | Fast, no DB, no network, no Yii application |
+| **Integration (functional)** | Repositories, queries, migrations, queue, forms, controllers, RBAC | Real DB of the same type as production; data cleaned between tests |
+| **API** | HTTP contracts: statuses, response formats, errors, authorization | Codeception REST |
+
+### What Must Be Verified
+
+- Happy path and all branches: boundary values, empty/invalid data.
+- Domain invariants and forbidden state transitions.
+- **Fault tolerance**:
+  - external service error/timeout → expected behavior (retry, fallback, or a clear error);
+  - repeated call (webhook, job, request) → no duplicates;
+  - failure midway through an operation → the transaction rolled back, no partial data;
+  - concurrent update → the conflict is handled;
+  - cache unavailable → the main flow keeps working.
+- Access rights: 401/403, someone else's resource.
+- A regression test for every fixed bug.
+
+### Test Quality
+
+- Arrange–Act–Assert, one test — one behavior, the name describes the behavior.
+- Tests are independent and deterministic: no real network, no dependence on current time (`FakeClock`) or execution order.
+- Test behavior, not implementation. Prefer simple fakes over complex mocks.
+- Coverage: Domain and Application ≥ 90%, overall ≥ 80%; the threshold is never lowered.
+
+### Pre-Commit Check
+
+Before **every** commit:
+
+```bash
+composer cs:fix
+composer check     # cs:check + stan + test
+```
+
+1. Any error → no commit; the agent fixes the cause and re-runs the checks from the start.
+2. `--no-verify`, disabling hooks, and adding errors to `ignoreErrors`/baseline without approval are forbidden.
+3. The report contains the actual run result (number of tests, status), not a claim like "everything passes".
+4. If tests cannot be run (no DB, no Docker, etc.), the agent reports it and does not commit blindly.
+
+Git hook (`.githooks/pre-commit`, enabled with `git config core.hooksPath .githooks`):
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+composer check
+```
+
+---
+
+## 8. Agent Workflow
+
+**Before a task**: read the task, related code, and tests. If requirements are ambiguous or touch data, payments, or access rights — ask, don't guess. Briefly describe the plan: affected layers, failure risks, which tests are needed.
+
+**During work**:
+
+- Small changes; one commit — one logical unit.
+- Follow project conventions; do not refactor unrelated code.
+- Do not invent APIs: verify signatures in the code or documentation.
+- Don't overcomplicate: choose the simplest solution that satisfies the requirements and the reliability principles.
+
+**Commits**:
+
+- Conventional Commits: `feat(orders): ...`, `fix(...)`, `test:`, `refactor:`, `docs:`, `chore:`.
+- Do not commit secrets, `.env`, `vendor/`, `runtime/`, or debug code (`var_dump`, `dd`, `print_r`).
+- Work in a feature branch, not in `main`.
+- Destructive operations (`push --force`, `reset --hard`, deleting data, rolling back migrations on real data) — only with explicit permission.
+
+**The agent must stop and ask if**:
+
+- a DB schema change is irreversible or affects large tables;
+- authorization, payments, or personal data are involved;
+- a check, test, or linter rule must be weakened;
+- a new external dependency is needed;
+- the pre-commit check cannot be run.
+
+---
+
+## 9. Definition of Done
+
+- [ ] Requirements are implemented
+- [ ] Layer dependencies point inward, business logic is not in controllers
+- [ ] Types and `strict_types`, PHPStan with no errors
+- [ ] Tests: happy path, branches, errors, dependency failures, repeated calls, transaction rollback
+- [ ] For a bug — a regression test
+- [ ] **All tests were run and pass** (result recorded), style and analysis are green
+- [ ] External calls: timeouts, error handling
+- [ ] Long-running operations moved to the queue
+- [ ] Input validation, access rights, SQLi/XSS/IDOR protection verified
+- [ ] Errors are logged with context, without sensitive data
+- [ ] No N+1 and no unbounded list queries
+- [ ] No debug code or secrets
+- [ ] The commit is atomic, the message follows Conventional Commits
+
+---
+
+## 10. Anti-Patterns (Forbidden)
+
+- Business logic in controllers, views, behaviors, and console commands.
+- `Yii::$app` as a Service Locator in Domain/Application.
+- Empty `catch` blocks, `@` error suppression.
+- External calls inside a transaction or without timeouts.
+- Infinite retries; retries of non-idempotent operations.
+- `float` for money; local time instead of UTC.
+- SQL concatenation.
+- Serializing AR/objects into the queue instead of IDs.
+- Tests that depend on the network, time, or execution order.
+- Weakening checks to get a "green" build.
+- Committing without running tests and checks.
+- Claiming "everything works" without actually running the checks.
+
+---
+
+## 11. Task Report Format
+
+```
+## What was done
+- briefly, by layer
+
+## Fault tolerance
+- which failures were handled and how
+
+## Tests
+- added: N unit, N integration, N api
+- run result: <actual output>
+- cs / stan: status
+
+## Questions / risks
+```
