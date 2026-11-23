@@ -304,6 +304,9 @@ final class InMemoryChargeAttemptRepository implements ChargeAttemptRepository
     private array $successful = [];
 
     /** @var array<string, string> */
+    private array $references = [];
+
+    /** @var array<string, string> */
     private array $completed = [];
 
     /** @var list<string> */
@@ -319,6 +322,11 @@ final class InMemoryChargeAttemptRepository implements ChargeAttemptRepository
         }
 
         return $found;
+    }
+
+    public function findSuccessfulReference(string $externalTrxId): ?string
+    {
+        return $this->references[$externalTrxId] ?? null;
     }
 
     public function completedExternalTrxIds(array $externalTrxIds): array
@@ -341,6 +349,7 @@ final class InMemoryChargeAttemptRepository implements ChargeAttemptRepository
     ): void {
         $this->guardUnique($externalTrxId);
         $this->successful[$externalTrxId] = $subscriberId->value() . ':' . $referenceId . ':' . $occurredAt->format('c');
+        $this->references[$externalTrxId] = $referenceId;
         $this->completed[$externalTrxId] = 'S1000';
         $this->statuses[] = 'S1000';
     }

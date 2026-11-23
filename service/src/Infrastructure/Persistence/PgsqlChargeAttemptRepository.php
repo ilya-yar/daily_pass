@@ -80,6 +80,30 @@ final class PgsqlChargeAttemptRepository implements ChargeAttemptRepository
         return $found;
     }
 
+    public function findSuccessfulReference(string $externalTrxId): ?string
+    {
+        if ($externalTrxId === '') {
+            throw new \InvalidArgumentException('externalTrxId is required.');
+        }
+
+        $referenceId = $this->connection->createCommand(
+            'SELECT reference_id FROM charge_attempt
+             WHERE status = :status AND external_trx_id = :external_trx_id',
+            [
+                ':status' => 'S1000',
+                ':external_trx_id' => $externalTrxId,
+            ],
+        )->queryScalar();
+        if ($referenceId === false || $referenceId === null) {
+            return null;
+        }
+        if (!is_string($referenceId) || $referenceId === '') {
+            throw new \RuntimeException('Successful charge is missing a reference id.');
+        }
+
+        return $referenceId;
+    }
+
     public function recordSuccess(
         SubscriberId $subscriberId,
         string $externalTrxId,

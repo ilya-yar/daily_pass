@@ -22,6 +22,8 @@ interface ChargeAttemptRepository
      */
     public function completedExternalTrxIds(array $externalTrxIds): array;
 
+    public function findSuccessfulReference(string $externalTrxId): ?string;
+
     public function recordSuccess(
         SubscriberId $subscriberId,
         string $externalTrxId,

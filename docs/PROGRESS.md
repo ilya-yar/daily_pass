@@ -1,7 +1,7 @@
 # Прогресс
 Обновлено: 2026-11-24
 Текущий этап: 3 — Сценарии сервиса
-Текущая задача: T-3.7 (done)
+Текущая задача: T-3.8 (done)
 
 ## Сделано
 - Roadmap переведён в `confirmed`. Q6 принят отдельно. Q1–Q5 и Q7–Q13 приняты 2026-11-23 вариантами по умолчанию.
@@ -23,9 +23,10 @@
 - T-3.5 ✅ `E1337`: тот же ключ, без второго debit; попытка пишется как `E1337`. Без `referenceId` — без receipt; с `referenceId` — сохраняется и шлётся один receipt (Q11). Следующий job ключ не перевыпускает. `E1318`: до 3 попыток с backoff, без suspend.
 - T-3.6 ✅ `POST /webhooks/subscription` отвечает `S1000` / `Success`. `REGISTERED` → ACTIVE, `UNREGISTERED` → INACTIVE, без welcome/goodbye и без Direct Debit. `PENDING`/`CHARGE` только сохраняются. Повтор по ключу Q10 — no-op и снова `S1000`. Уникальный индекс события переживает рестарт.
 - T-3.7 ✅ `POST /webhooks/mo` на `STOP` вызывает Platform `action:"0"`, ставит INACTIVE и шлёт goodbye «Daily Pass is stopped». Ответ `S1000` / `Success`. Неизвестный и повторный STOP (Q12) без Platform и без второго goodbye. Job читает статус перед debit: opt-out до вызова не оставляет успех; in-flight `S1000` не выпускает новый ключ. Следующий job INACTIVE пропускает. Таймаут Platform не ставит INACTIVE.
+- T-3.8 ✅ `GET /charges?msisdn=&date=` смотрит успешную попытку (`S1000`) за UTC-день. После списания — `charged: true` и тот же `referenceId`. До списания, после только `E1326`, `E1337` и неизвестный MSISDN — `charged: false`, не 500. `password` в ответе нет.
 
 ## В работе / дальше
-- Следующая задача этапа 3: T-3.8 Ответ финансисту.
+- Этап 3 закрыт. Следующая задача: T-4.1 (этап 4, после явной просьбы).
 
 ## Принятые решения и допущения
 - Q1–Q13 приняты. Q6: только HTTP-эндпоинты, UI не делаем, сценарии — задокументированные `curl`. Пути: `POST /subscribers`, `GET /subscribers/{subscriberId}`, `POST /jobs/daily-charge`, `POST /webhooks/subscription`, `POST /webhooks/mo`, `GET /charges`. Остальные — варианты по умолчанию из `docs/spec/open-questions.md`: billing day = календарная дата UTC; плата `5.00` `XTS` из env; не больше 3 попыток с паузой 1/2/4 с и тем же `externalTrxId`; статусы `ACTIVE` / `SUSPENDED` / `INACTIVE`; webhook `REGISTERED`→`ACTIVE`, `UNREGISTERED`→`INACTIVE`, `PENDING`/`CHARGE` только запись; SMS-тексты и `sourceAddress` из Q7; MSISDN `^tel:[0-9]+$`; повторный ACTIVE opt-in без Platform и без второго welcome; ключ webhook = `subscriberId`+`status`+`timeStamp`+`frequency`; `E1337` без нового ключа; неизвестный и повторный STOP по Q12; мок — `MOCK_CHARGE_STATUS`, повтор ключа всегда `E1337`.
@@ -39,8 +40,8 @@
 - Q1–Q13 закрыты. Тексты решений — в `docs/spec/open-questions.md`.
 
 ## Последний результат проверок
-- `docker compose exec service composer check` (после пересборки образа service, T-3.7):
+- `docker compose exec service composer check` (после пересборки образа service, T-3.8):
   - php-cs-fixer: 0 files to fix
   - phpstan: OK, no errors
-  - codeception: OK (83 tests, 897 assertions) — 16 api, 5 integration, 12 mock, 50 unit
+  - codeception: OK (90 tests, 1029 assertions) — 19 api, 5 integration, 12 mock, 54 unit
 - T-0.1 `tests/integration/health.sh`: 200, затем 503 при остановленной БД, затем снова 200.

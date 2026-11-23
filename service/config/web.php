@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Application\Audit\GetDailyCharge;
 use App\Application\Charging\Delay;
 use App\Application\Charging\RunDailyCharge;
 use App\Application\OptIn\OptInSubscriber;
@@ -106,6 +107,9 @@ return [
             GetSubscriberStatus::class => static function (Container $container): GetSubscriberStatus {
                 return new GetSubscriberStatus($container->get(SubscriberRepository::class));
             },
+            GetDailyCharge::class => static function (Container $container): GetDailyCharge {
+                return new GetDailyCharge($container->get(ChargeAttemptRepository::class));
+            },
             OptOutSubscriber::class => static function (Container $container): OptOutSubscriber {
                 $sourceAddress = getenv('SMS_SOURCE_ADDRESS');
                 if (!is_string($sourceAddress) || $sourceAddress === '') {
@@ -166,6 +170,7 @@ return [
                 'POST jobs/daily-charge' => 'jobs/run-daily-charge',
                 'POST webhooks/subscription' => 'webhooks/subscription',
                 'POST webhooks/mo' => 'webhooks/mo',
+                'GET charges' => 'charges/index',
             ],
         ],
         'log' => [
