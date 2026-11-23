@@ -1,7 +1,7 @@
 # Прогресс
 Обновлено: 2026-11-23
-Текущий этап: 2 — Мок Platform (завершён)
-Текущая задача: T-2.4 (done)
+Текущий этап: 3 — Сценарии сервиса
+Текущая задача: T-3.1 (done)
 
 ## Сделано
 - Roadmap переведён в `confirmed`. Q6 принят отдельно. Q1–Q5 и Q7–Q13 приняты 2026-11-23 вариантами по умолчанию.
@@ -16,15 +16,16 @@
 - T-2.2 ✅ Мок `POST /sms/send` принимает поля §C и отвечает `S1000`. Тела сохраняются в файл, `GET /sms` отдаёт список без `password` и `applicationId`. Повтор того же текста даёт вторую строку.
 - T-2.3 ✅ Мок `POST /caas/direct/debit`. Код первого ответа — `MOCK_CHARGE_STATUS` (`S1000`, `E1326`, `E1308`, `E1337`), переключение в процессе: `POST /mock/charge-status`. Уже виденный `externalTrxId` всегда `E1337` и хранится в Postgres `mock_seen_external_trx`, поэтому рестарт мока не превращает повтор в новое списание. Успех отдаёт `externalTrxId`, `internalTrxId`, `referenceId`, `timeStamp`. Пароль в ответ не попадает.
 - T-2.4 ✅ Мок `POST /mock/notifications` шлёт JSON §B (`applicationId`, `subscriberId`, `frequency`, `status`, `version`, `timeStamp`) одним HTTP POST. URL по умолчанию — `SERVICE_WEBHOOK_URL`. Повтор ручки шлёт событие снова. Недоступный приёмник даёт 502 и `E1000`, `/health` остаётся 200. Приёмник для демо и тестов: `POST /mock/inbox`, чтение `GET /mock/inbox`.
+- T-3.1 ✅ `POST /subscribers` принимает `{"msisdn":"tel:…"}`. Невалидный id отвергается до Platform и не пишет строку. Уже ACTIVE — без Platform и без второго welcome (Q9). Новый: `action:"1"`, при `S1000` запись ACTIVE и welcome «Daily Pass is active». Таймаут Platform не делает ACTIVE и не шлёт welcome. CSRF на этой ручке выключен: контракт JSON/`curl`, не браузерная форма.
 
 ## В работе / дальше
-- Этап 2 завершён. Следующий этап — 3, первая задача T-3.1: opt-in.
+- Следующая задача этапа 3: T-3.2 статус подписчика.
 
 ## Принятые решения и допущения
 - Q1–Q13 приняты. Q6: только HTTP-эндпоинты, UI не делаем, сценарии — задокументированные `curl`. Пути: `POST /subscribers`, `GET /subscribers/{subscriberId}`, `POST /jobs/daily-charge`, `POST /webhooks/subscription`, `POST /webhooks/mo`, `GET /charges`. Остальные — варианты по умолчанию из `docs/spec/open-questions.md`: billing day = календарная дата UTC; плата `5.00` `XTS` из env; не больше 3 попыток с паузой 1/2/4 с и тем же `externalTrxId`; статусы `ACTIVE` / `SUSPENDED` / `INACTIVE`; webhook `REGISTERED`→`ACTIVE`, `UNREGISTERED`→`INACTIVE`, `PENDING`/`CHARGE` только запись; SMS-тексты и `sourceAddress` из Q7; MSISDN `^tel:[0-9]+$`; повторный ACTIVE opt-in без Platform и без второго welcome; ключ webhook = `subscriberId`+`status`+`timeStamp`+`frequency`; `E1337` без нового ключа; неизвестный и повторный STOP по Q12; мок — `MOCK_CHARGE_STATUS`, повтор ключа всегда `E1337`.
 - A-DB: PostgreSQL 16 в compose. Локальные пароль БД и `COOKIE_VALIDATION_KEY` лежат в `docker-compose.yml`, чтобы подъём не требовал ручного `.env`. Это не секреты Platform.
 - A-STACK: оба процесса — PHP 8.2 и Yii2. Lock сервиса зафиксирован на platform php 8.2.36, иначе Composer подтягивает пакеты для PHP 8.4.
-- `PLATFORM_BASE_URL=http://platform-mock:8080` внутри сети compose. С хоста мок на `localhost:8081`.
+- `PLATFORM_BASE_URL=http://platform-mock:8080` внутри сети compose. С хоста мок на `localhost:8081`. Локальные `PLATFORM_APPLICATION_ID`, `PLATFORM_PASSWORD` и `SMS_SOURCE_ADDRESS` заданы в `docker-compose.yml` (как пароль БД): иначе opt-in не стартует одной командой.
 - PHPStan смотрит `src`, `config`, `migrations`, `public`, `bin` и наши unit/integration-тесты. Сгенерированные акторы Codeception в анализ не входят: их уровень 8 не проходит без baseline, а baseline без согласования запрещён.
 - Dev-зависимости стоят в образе сервиса, чтобы `composer check` шёл внутри контейнера и на хосте не нужен PHP.
 
@@ -32,8 +33,8 @@
 - Q1–Q13 закрыты. Тексты решений — в `docs/spec/open-questions.md`.
 
 ## Последний результат проверок
-- `docker compose exec service composer check` (после пересборки образов, T-2.4):
+- `docker compose exec service composer check` (после пересборки образа service, T-3.1):
   - php-cs-fixer: 0 files to fix
   - phpstan: OK, no errors
-  - codeception: OK (42 tests, 204 assertions) — 1 api, 5 integration, 12 mock, 24 unit
+  - codeception: OK (49 tests, 270 assertions) — 4 api, 5 integration, 12 mock, 28 unit
 - T-0.1 `tests/integration/health.sh`: 200, затем 503 при остановленной БД, затем снова 200.
