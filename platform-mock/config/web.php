@@ -25,6 +25,7 @@ return [
             'showScriptName' => false,
             'rules' => [
                 'GET health' => 'health/index',
+                'POST subscription/send' => 'subscription/send',
             ],
         ],
         'log' => [

@@ -1,0 +1,9 @@
+actor: MockTester
+suite_namespace: Tests\Mock
+path: Mock
+modules:
+    enabled:
+        - REST:
+            url: http://platform-mock:8080
+            depends: PhpBrowser
+        - Asserts
