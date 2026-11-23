@@ -18,4 +18,6 @@ interface SubscriberRepository
     public function activate(SubscriberId $id, DateTimeImmutable $at): void;
 
     public function suspend(SubscriberId $id, DateTimeImmutable $at): void;
+
+    public function deactivate(SubscriberId $id, DateTimeImmutable $at): void;
 }

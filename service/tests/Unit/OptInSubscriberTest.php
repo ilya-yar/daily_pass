@@ -109,6 +109,10 @@ final class InMemorySubscriberRepository implements SubscriberRepository
 
     public bool $activated = false;
 
+    public int $activateCalls = 0;
+
+    public int $deactivateCalls = 0;
+
     public ?DateTimeImmutable $activatedAt = null;
 
     public function find(SubscriberId $id): ?Subscriber
@@ -136,6 +140,7 @@ final class InMemorySubscriberRepository implements SubscriberRepository
     public function activate(SubscriberId $id, DateTimeImmutable $at): void
     {
         $this->activated = true;
+        $this->activateCalls++;
         $this->activatedAt = $at;
         $this->rows[$id->value()] = new Subscriber($id, SubscriberStatus::Active);
     }
@@ -143,6 +148,13 @@ final class InMemorySubscriberRepository implements SubscriberRepository
     public function suspend(SubscriberId $id, DateTimeImmutable $at): void
     {
         $this->rows[$id->value()] = new Subscriber($id, SubscriberStatus::Suspended);
+        $this->activatedAt = $at;
+    }
+
+    public function deactivate(SubscriberId $id, DateTimeImmutable $at): void
+    {
+        $this->deactivateCalls++;
+        $this->rows[$id->value()] = new Subscriber($id, SubscriberStatus::Inactive);
         $this->activatedAt = $at;
     }
 }

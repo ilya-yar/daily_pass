@@ -7,13 +7,16 @@ use App\Application\Charging\RunDailyCharge;
 use App\Application\OptIn\OptInSubscriber;
 use App\Application\Platform\PlatformClient;
 use App\Application\Status\GetSubscriberStatus;
+use App\Application\Webhook\HandleSubscriptionNotification;
 use App\Domain\Amount;
 use App\Domain\ChargeAttemptRepository;
 use App\Domain\Clock;
 use App\Domain\SubscriberRepository;
+use App\Domain\SubscriptionNotificationRepository;
 use App\Infrastructure\Logging\YiiPsrLogger;
 use App\Infrastructure\Persistence\PgsqlChargeAttemptRepository;
 use App\Infrastructure\Persistence\PgsqlSubscriberRepository;
+use App\Infrastructure\Persistence\PgsqlSubscriptionNotificationRepository;
 use App\Infrastructure\Platform\CurlHttpTransport;
 use App\Infrastructure\Platform\HttpPlatformClient;
 use App\Infrastructure\Platform\HttpTransport;
@@ -68,6 +71,18 @@ return [
 
                 return new PgsqlChargeAttemptRepository($connection);
             },
+            SubscriptionNotificationRepository::class => static function (): SubscriptionNotificationRepository {
+                $application = Yii::$app;
+                if (!$application instanceof WebApplication && !$application instanceof yii\console\Application) {
+                    throw new RuntimeException('Application is not bootstrapped.');
+                }
+                $connection = $application->get('db');
+                if (!$connection instanceof Connection) {
+                    throw new RuntimeException('Database component is not configured.');
+                }
+
+                return new PgsqlSubscriptionNotificationRepository($connection);
+            },
             PlatformClient::class => static function (Container $container): PlatformClient {
                 return HttpPlatformClient::fromEnvironment(
                     $container->get(HttpTransport::class),
@@ -89,6 +104,13 @@ return [
             },
             GetSubscriberStatus::class => static function (Container $container): GetSubscriberStatus {
                 return new GetSubscriberStatus($container->get(SubscriberRepository::class));
+            },
+            HandleSubscriptionNotification::class => static function (Container $container): HandleSubscriptionNotification {
+                return new HandleSubscriptionNotification(
+                    $container->get(SubscriptionNotificationRepository::class),
+                    $container->get(SubscriberRepository::class),
+                    $container->get(Clock::class),
+                );
             },
             RunDailyCharge::class => static function (Container $container): RunDailyCharge {
                 $sourceAddress = getenv('SMS_SOURCE_ADDRESS');
@@ -128,6 +150,7 @@ return [
                 'POST subscribers' => 'subscribers/create',
                 'GET subscribers/<subscriberId:.+>' => 'subscribers/view',
                 'POST jobs/daily-charge' => 'jobs/run-daily-charge',
+                'POST webhooks/subscription' => 'webhooks/subscription',
             ],
         ],
         'log' => [
