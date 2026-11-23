@@ -1,17 +1,18 @@
 # Прогресс
 Обновлено: 2026-11-23
 Текущий этап: 1 — Фундамент
-Текущая задача: T-1.1 (done)
+Текущая задача: T-1.4 (done)
 
 ## Сделано
 - Roadmap переведён в `confirmed`. Q6 принят отдельно. Q1–Q5 и Q7–Q13 приняты 2026-11-23 вариантами по умолчанию.
 - T-0.1 ✅ `docker compose up` поднимает service, platform-mock и PostgreSQL. Коммит `a1f27d7`.
 - T-0.2 ✅ В `service/` есть Composer-скрипты `cs:fix`, `cs:check`, `stan`, `test`, `check`, Codeception (unit / integration / api), PHPStan 8, PHP-CS-Fixer, слои `src/Domain`, `src/Application`, `src/Infrastructure`, `src/Presentation`. Хук `.githooks/pre-commit` вызывает `composer check` внутри контейнера `service`. Включено: `core.hooksPath=.githooks`.
 - T-1.1 ✅ Таблицы `subscriber` и `charge_attempt`. `external_trx_id` уникален, пустой `reference_id` допустим. Запись обоих в одной транзакции: сбой попытки откатывает нового подписчика. Статусы подписчика — дефолт Q4. Миграция выполняется при старте контейнера (`bin/serve.sh`).
+- T-1.4 ✅ HTTP-клиент Platform: `POST /subscription/send`, `/sms/send`, `/caas/direct/debit`. `applicationId` и `password` только из env (`PLATFORM_APPLICATION_ID`, `PLATFORM_PASSWORD`). Таймауты connect/read: env `PLATFORM_CONNECT_TIMEOUT` и `PLATFORM_READ_TIMEOUT`, иначе 2 с и 5 с. Клиент не ретраит и не меняет `externalTrxId`. Пароль и application id не пишутся в лог.
 
 ## В работе / дальше
-- Следующая задача критического пути — T-1.4 (HTTP-клиент Platform). Её можно делать параллельно с T-1.2 и T-1.3.
-- Q1–Q13 больше не блокируют задачи. Решения лежат в `docs/spec/open-questions.md`.
+- В этапе 1 остались T-1.2, T-1.3 и T-1.5. Следующая по файлу этапа — T-1.2.
+- Критический путь после T-1.4 — T-2.3, его имеет смысл брать после оставшихся задач этапа 1.
 
 ## Принятые решения и допущения
 - Q1–Q13 приняты. Q6: только HTTP-эндпоинты, UI не делаем, сценарии — задокументированные `curl`. Пути: `POST /subscribers`, `GET /subscribers/{subscriberId}`, `POST /jobs/daily-charge`, `POST /webhooks/subscription`, `POST /webhooks/mo`, `GET /charges`. Остальные — варианты по умолчанию из `docs/spec/open-questions.md`: billing day = календарная дата UTC; плата `5.00` `XTS` из env; не больше 3 попыток с паузой 1/2/4 с и тем же `externalTrxId`; статусы `ACTIVE` / `SUSPENDED` / `INACTIVE`; webhook `REGISTERED`→`ACTIVE`, `UNREGISTERED`→`INACTIVE`, `PENDING`/`CHARGE` только запись; SMS-тексты и `sourceAddress` из Q7; MSISDN `^tel:[0-9]+$`; повторный ACTIVE opt-in без Platform и без второго welcome; ключ webhook = `subscriberId`+`status`+`timeStamp`+`frequency`; `E1337` без нового ключа; неизвестный и повторный STOP по Q12; мок — `MOCK_CHARGE_STATUS`, повтор ключа всегда `E1337`.
@@ -25,8 +26,8 @@
 - Q1–Q13 закрыты. Тексты решений — в `docs/spec/open-questions.md`.
 
 ## Последний результат проверок
-- `docker compose exec service composer check` (после пересборки образа, T-1.1):
+- `docker compose exec service composer check` (после пересборки образа, T-1.4):
   - php-cs-fixer: 0 files to fix
   - phpstan: OK, no errors
-  - codeception: OK (8 tests, 16 assertions) — 1 api, 5 integration, 2 unit
+  - codeception: OK (18 tests, 70 assertions) — 1 api, 5 integration, 12 unit
 - T-0.1 `tests/integration/health.sh`: 200, затем 503 при остановленной БД, затем снова 200.
