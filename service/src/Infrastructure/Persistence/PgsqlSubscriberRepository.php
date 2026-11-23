@@ -77,4 +77,19 @@ final class PgsqlSubscriberRepository implements SubscriberRepository
             ],
         )->execute();
     }
+
+    public function suspend(SubscriberId $id, DateTimeImmutable $at): void
+    {
+        $atUtc = $at->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        $this->connection->createCommand(
+            'UPDATE subscriber
+             SET status = :status, status_changed_at = :status_changed_at
+             WHERE subscriber_id = :subscriber_id',
+            [
+                ':status' => SubscriberStatus::Suspended->value,
+                ':status_changed_at' => $atUtc,
+                ':subscriber_id' => $id->value(),
+            ],
+        )->execute();
+    }
 }

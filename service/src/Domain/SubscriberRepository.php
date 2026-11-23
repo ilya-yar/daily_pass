@@ -16,4 +16,6 @@ interface SubscriberRepository
     public function listActive(): array;
 
     public function activate(SubscriberId $id, DateTimeImmutable $at): void;
+
+    public function suspend(SubscriberId $id, DateTimeImmutable $at): void;
 }

@@ -139,6 +139,12 @@ final class InMemorySubscriberRepository implements SubscriberRepository
         $this->activatedAt = $at;
         $this->rows[$id->value()] = new Subscriber($id, SubscriberStatus::Active);
     }
+
+    public function suspend(SubscriberId $id, DateTimeImmutable $at): void
+    {
+        $this->rows[$id->value()] = new Subscriber($id, SubscriberStatus::Suspended);
+        $this->activatedAt = $at;
+    }
 }
 
 final class RecordingPlatformClient implements PlatformClient

@@ -47,6 +47,44 @@ final class DailyChargeCest
         $tester->assertSame(0, $this->receiptCount($tester, $msisdn, 'unused'));
     }
 
+    public function insufficientBalanceLeavesActiveWithoutAReceipt(ApiTester $tester): void
+    {
+        $msisdn = 'tel:3202' . random_int(100000, 999999);
+        $this->optIn($tester, $msisdn);
+        $this->setMockChargeStatus($tester, 'E1326');
+
+        $tester->sendPost('/jobs/daily-charge');
+        $tester->seeResponseCodeIs(200);
+        $tester->assertCount(0, $this->successfulAttempts($msisdn));
+        $tester->assertSame(0, $this->receiptCount($tester, $msisdn, 'unused'));
+
+        $tester->sendGet('/subscribers/' . rawurlencode($msisdn));
+        $tester->seeResponseCodeIs(200);
+        $tester->seeResponseContainsJson(['subscriberId' => $msisdn, 'status' => 'ACTIVE']);
+    }
+
+    public function permanentErrorSuspendsAndTheNextJobDoesNotCharge(ApiTester $tester): void
+    {
+        $msisdn = 'tel:3203' . random_int(100000, 999999);
+        $this->optIn($tester, $msisdn);
+        $this->setMockChargeStatus($tester, 'E1308');
+
+        $tester->sendPost('/jobs/daily-charge');
+        $tester->seeResponseCodeIs(200);
+        $tester->assertCount(0, $this->successfulAttempts($msisdn));
+        $tester->assertSame(0, $this->receiptCount($tester, $msisdn, 'unused'));
+        $tester->sendGet('/subscribers/' . rawurlencode($msisdn));
+        $tester->seeResponseCodeIs(200);
+        $tester->seeResponseContainsJson(['status' => 'SUSPENDED']);
+
+        $this->setMockChargeStatus($tester, 'S1000');
+        $tester->sendPost('/jobs/daily-charge');
+        $tester->seeResponseCodeIs(200);
+        $tester->assertCount(0, $this->successfulAttempts($msisdn));
+        $tester->sendGet('/subscribers/' . rawurlencode($msisdn));
+        $tester->seeResponseContainsJson(['status' => 'SUSPENDED']);
+    }
+
     private function optIn(ApiTester $tester, string $msisdn): void
     {
         $tester->haveHttpHeader('Content-Type', 'application/json');

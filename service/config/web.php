@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Application\Charging\Delay;
 use App\Application\Charging\RunDailyCharge;
 use App\Application\OptIn\OptInSubscriber;
 use App\Application\Platform\PlatformClient;
@@ -16,6 +17,7 @@ use App\Infrastructure\Persistence\PgsqlSubscriberRepository;
 use App\Infrastructure\Platform\CurlHttpTransport;
 use App\Infrastructure\Platform\HttpPlatformClient;
 use App\Infrastructure\Platform\HttpTransport;
+use App\Infrastructure\Time\PhpDelay;
 use App\Infrastructure\Time\SystemClock;
 use Psr\Log\LoggerInterface;
 use yii\db\Connection;
@@ -39,6 +41,7 @@ return [
     'container' => [
         'singletons' => [
             Clock::class => SystemClock::class,
+            Delay::class => PhpDelay::class,
             HttpTransport::class => CurlHttpTransport::class,
             LoggerInterface::class => YiiPsrLogger::class,
             SubscriberRepository::class => static function (): SubscriberRepository {
@@ -100,6 +103,7 @@ return [
                     $container->get(ChargeAttemptRepository::class),
                     $container->get(PlatformClient::class),
                     $container->get(Clock::class),
+                    $container->get(Delay::class),
                     Amount::fromDecimal($feeText),
                     $currency,
                     $sourceAddress,
