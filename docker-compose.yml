@@ -19,6 +19,13 @@ services:
       YII_DEBUG: "false"
       YII_ENV: prod
       COOKIE_VALIDATION_KEY: local-dev-cookie-key
+      MOCK_CHARGE_STATUS: S1000
+      DB_DSN: pgsql:host=db;port=5432;dbname=daily_pass;connect_timeout=2
+      DB_USER: daily_pass
+      DB_PASSWORD: daily_pass
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "php", "/app/bin/healthcheck.php"]
       interval: 2s

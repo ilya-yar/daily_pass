@@ -20,6 +20,7 @@ return [
             'cookieValidationKey' => $required('COOKIE_VALIDATION_KEY'),
             'enableCsrfValidation' => true,
         ],
+        'db' => require __DIR__ . '/db.php',
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
@@ -28,6 +29,8 @@ return [
                 'POST subscription/send' => 'subscription/send',
                 'POST sms/send' => 'sms/send',
                 'GET sms' => 'sms/index',
+                'POST caas/direct/debit' => 'debit/create',
+                'POST mock/charge-status' => 'charge-status/update',
             ],
         ],
         'log' => [
