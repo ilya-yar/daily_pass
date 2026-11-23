@@ -15,14 +15,14 @@
 
 Формулировки чеклиста (строки 105–112). Каждая закрывается требованиями модулей:
 
-- [ ] `docker compose up` on a clean machine brings up service + mock, no manual steps. → REQ-OVW-003, REQ-OVW-004, REQ-OVW-007
-- [ ] Opt-in registers the subscriber and sends a welcome SMS visible in the mock. → REQ-OPTIN-003, REQ-OPTIN-004, REQ-SMS-003
-- [ ] Daily charge success charges once, stores the transaction, sends a receipt with `referenceId`. → REQ-CHG-003
-- [ ] Running the daily job **twice** in the same day charges **once** (prove it in a test). → REQ-CHG-006, REQ-TEST-002
-- [ ] A duplicate subscription notification does **not** double-charge (prove it). → REQ-WH-004, REQ-TEST-003
-- [ ] Insufficient balance (`E1326`) and permanent error (`E1308`) are handled **differently**. → REQ-CHG-004, REQ-CHG-005
-- [ ] `STOP` opts the subscriber out; a subsequent charge run skips them. → REQ-OUT-006
-- [ ] No credentials in code or logs. → REQ-SEC-002
+- [x] `docker compose up` on a clean machine brings up service + mock, no manual steps. → REQ-OVW-003, REQ-OVW-004, REQ-OVW-007 (`tests/integration/health.sh`, `HealthCest`)
+- [x] Opt-in registers the subscriber and sends a welcome SMS visible in the mock. → REQ-OPTIN-003, REQ-OPTIN-004, REQ-SMS-003 (`OptInCest`, `EndToEndFlowsCest`)
+- [x] Daily charge success charges once, stores the transaction, sends a receipt with `referenceId`. → REQ-CHG-003 (`DailyChargeCest`, `EndToEndFlowsCest`)
+- [x] Running the daily job **twice** in the same day charges **once** (prove it in a test). → REQ-CHG-006, REQ-TEST-002 (`DailyChargeCest`)
+- [x] A duplicate subscription notification does **not** double-charge (prove it). → REQ-WH-004, REQ-TEST-003 (`SubscriptionWebhookCest`, `EndToEndFlowsCest`)
+- [x] Insufficient balance (`E1326`) and permanent error (`E1308`) are handled **differently**. → REQ-CHG-004, REQ-CHG-005 (`DailyChargeCest`, `RunDailyChargeTest`)
+- [x] `STOP` opts the subscriber out; a subsequent charge run skips them. → REQ-OUT-006 (`MoStopCest`, `EndToEndFlowsCest`; race: `RunDailyChargeTest`)
+- [x] No credentials in code or logs. → REQ-SEC-002 (`HttpPlatformClientTest`, `SourceHasNoPlatformPasswordTest`, `SecretsHygieneCest`)
 
 - REQ-TEST-002: Running the daily job twice in the same day charges once (prove it in a test).
 - REQ-TEST-003: A duplicate subscription notification does not double-charge (prove it).
