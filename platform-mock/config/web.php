@@ -26,6 +26,8 @@ return [
             'rules' => [
                 'GET health' => 'health/index',
                 'POST subscription/send' => 'subscription/send',
+                'POST sms/send' => 'sms/send',
+                'GET sms' => 'sms/index',
             ],
         ],
         'log' => [

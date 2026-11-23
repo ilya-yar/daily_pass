@@ -1,7 +1,7 @@
 # Прогресс
 Обновлено: 2026-11-23
 Текущий этап: 2 — Мок Platform
-Текущая задача: T-2.1 (done)
+Текущая задача: T-2.2 (done)
 
 ## Сделано
 - Roadmap переведён в `confirmed`. Q6 принят отдельно. Q1–Q5 и Q7–Q13 приняты 2026-11-23 вариантами по умолчанию.
@@ -13,9 +13,10 @@
 - T-1.4 ✅ HTTP-клиент Platform: `POST /subscription/send`, `/sms/send`, `/caas/direct/debit`. `applicationId` и `password` только из env (`PLATFORM_APPLICATION_ID`, `PLATFORM_PASSWORD`). Таймауты connect/read: env `PLATFORM_CONNECT_TIMEOUT` и `PLATFORM_READ_TIMEOUT`, иначе 2 с и 5 с. Клиент не ретраит и не меняет `externalTrxId`. Пароль и application id не пишутся в лог.
 - T-1.5 ✅ `externalTrxId` = календарная дата UTC и SHA-256 всего `subscriberId`. Тот же абонент и тот же UTC-день дают тот же ключ. Другой день или другой абонент меняют ключ. Номера попытки и секрета Platform в ключе нет. Время берётся из `Clock`, не из системных часов.
 - T-2.1 ✅ Мок `POST /subscription/send`. `action` `"1"` отвечает `S1000` и `subscriptionStatus` `REGISTERED`, `"0"` — `UNREGISTERED`. В ответе есть `version`, `requestId`, `statusDetail`. Битый JSON и иной `action` получают `E1000`, не `S1000`. `E1000` — отказ мока, не код §E.
+- T-2.2 ✅ Мок `POST /sms/send` принимает поля §C и отвечает `S1000`. Тела сохраняются в файл, `GET /sms` отдаёт список без `password` и `applicationId`. Повтор того же текста даёт вторую строку.
 
 ## В работе / дальше
-- Следующая задача этапа 2 — T-2.2: мок хранит исходящие SMS.
+- Следующая задача этапа 2 — T-2.3: Direct Debit с настраиваемым кодом.
 
 ## Принятые решения и допущения
 - Q1–Q13 приняты. Q6: только HTTP-эндпоинты, UI не делаем, сценарии — задокументированные `curl`. Пути: `POST /subscribers`, `GET /subscribers/{subscriberId}`, `POST /jobs/daily-charge`, `POST /webhooks/subscription`, `POST /webhooks/mo`, `GET /charges`. Остальные — варианты по умолчанию из `docs/spec/open-questions.md`: billing day = календарная дата UTC; плата `5.00` `XTS` из env; не больше 3 попыток с паузой 1/2/4 с и тем же `externalTrxId`; статусы `ACTIVE` / `SUSPENDED` / `INACTIVE`; webhook `REGISTERED`→`ACTIVE`, `UNREGISTERED`→`INACTIVE`, `PENDING`/`CHARGE` только запись; SMS-тексты и `sourceAddress` из Q7; MSISDN `^tel:[0-9]+$`; повторный ACTIVE opt-in без Platform и без второго welcome; ключ webhook = `subscriberId`+`status`+`timeStamp`+`frequency`; `E1337` без нового ключа; неизвестный и повторный STOP по Q12; мок — `MOCK_CHARGE_STATUS`, повтор ключа всегда `E1337`.
@@ -29,8 +30,8 @@
 - Q1–Q13 закрыты. Тексты решений — в `docs/spec/open-questions.md`.
 
 ## Последний результат проверок
-- `docker compose exec service composer check` (после пересборки образов, T-2.1):
+- `docker compose exec service composer check` (после пересборки образов, T-2.2):
   - php-cs-fixer: 0 files to fix
   - phpstan: OK, no errors
-  - codeception: OK (34 tests, 130 assertions) — 1 api, 5 integration, 4 mock, 24 unit
+  - codeception: OK (36 tests, 147 assertions) — 1 api, 5 integration, 6 mock, 24 unit
 - T-0.1 `tests/integration/health.sh`: 200, затем 503 при остановленной БД, затем снова 200.
