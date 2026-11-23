@@ -1,3 +1,4 @@
 vendor
 runtime
-tests
+.php-cs-fixer.cache
+tests/_output

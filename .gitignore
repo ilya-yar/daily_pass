@@ -1,5 +1,7 @@
 .idea/
 /service/vendor/
 /service/runtime/
+/service/tests/_output/
+/service/.php-cs-fixer.cache
 /platform-mock/vendor/
 /platform-mock/runtime/
