@@ -20,6 +20,9 @@ services:
       YII_ENV: prod
       COOKIE_VALIDATION_KEY: local-dev-cookie-key
       MOCK_CHARGE_STATUS: S1000
+      MOCK_APPLICATION_ID: APP_000123
+      SERVICE_WEBHOOK_URL: http://service:8080/webhooks/subscription
+      PHP_CLI_SERVER_WORKERS: "2"
       DB_DSN: pgsql:host=db;port=5432;dbname=daily_pass;connect_timeout=2
       DB_USER: daily_pass
       DB_PASSWORD: daily_pass

@@ -31,6 +31,9 @@ return [
                 'GET sms' => 'sms/index',
                 'POST caas/direct/debit' => 'debit/create',
                 'POST mock/charge-status' => 'charge-status/update',
+                'POST mock/notifications' => 'notification/push',
+                'POST mock/inbox' => 'notification/capture',
+                'GET mock/inbox' => 'notification/index',
             ],
         ],
         'log' => [
