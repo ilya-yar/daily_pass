@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Application\OptIn\OptInSubscriber;
 use App\Application\Platform\PlatformClient;
+use App\Application\Status\GetSubscriberStatus;
 use App\Domain\Clock;
 use App\Domain\SubscriberRepository;
 use App\Infrastructure\Logging\YiiPsrLogger;
@@ -67,6 +68,9 @@ return [
                     $sourceAddress,
                 );
             },
+            GetSubscriberStatus::class => static function (Container $container): GetSubscriberStatus {
+                return new GetSubscriberStatus($container->get(SubscriberRepository::class));
+            },
         ],
     ],
     'components' => [
@@ -84,6 +88,7 @@ return [
             'rules' => [
                 'GET health' => 'health/index',
                 'POST subscribers' => 'subscribers/create',
+                'GET subscribers/<subscriberId:.+>' => 'subscribers/view',
             ],
         ],
         'log' => [
