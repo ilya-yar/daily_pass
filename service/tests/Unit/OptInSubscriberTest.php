@@ -116,6 +116,23 @@ final class InMemorySubscriberRepository implements SubscriberRepository
         return $this->rows[$id->value()] ?? null;
     }
 
+    public function listActive(): array
+    {
+        $active = [];
+        foreach ($this->rows as $subscriber) {
+            if ($subscriber->isActive()) {
+                $active[] = $subscriber;
+            }
+        }
+
+        return $active;
+    }
+
+    public function add(Subscriber $subscriber): void
+    {
+        $this->rows[$subscriber->id->value()] = $subscriber;
+    }
+
     public function activate(SubscriberId $id, DateTimeImmutable $at): void
     {
         $this->activated = true;

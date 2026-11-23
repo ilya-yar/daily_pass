@@ -47,6 +47,8 @@ services:
       PLATFORM_APPLICATION_ID: APP_000123
       PLATFORM_PASSWORD: local-mock-password
       SMS_SOURCE_ADDRESS: "1234"
+      DAILY_FEE_AMOUNT: "5.00"
+      DAILY_FEE_CURRENCY: XTS
       DB_DSN: pgsql:host=db;port=5432;dbname=daily_pass;connect_timeout=2
       DB_USER: daily_pass
       DB_PASSWORD: daily_pass

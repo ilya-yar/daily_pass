@@ -39,6 +39,28 @@ final class PgsqlSubscriberRepository implements SubscriberRepository
         );
     }
 
+    public function listActive(): array
+    {
+        $rows = $this->connection->createCommand(
+            'SELECT subscriber_id, status FROM subscriber WHERE status = :status ORDER BY id',
+            [':status' => SubscriberStatus::Active->value],
+        )->queryAll();
+        $subscribers = [];
+        foreach ($rows as $row) {
+            $subscriberId = $row['subscriber_id'] ?? null;
+            $status = $row['status'] ?? null;
+            if (!is_string($subscriberId) || !is_string($status)) {
+                throw new \RuntimeException('Subscriber row is incomplete.');
+            }
+            $subscribers[] = new Subscriber(
+                SubscriberId::fromString($subscriberId),
+                SubscriberStatus::from($status),
+            );
+        }
+
+        return $subscribers;
+    }
+
     public function activate(SubscriberId $id, DateTimeImmutable $at): void
     {
         $atUtc = $at->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');

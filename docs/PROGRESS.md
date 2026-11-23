@@ -1,7 +1,7 @@
 # Прогресс
 Обновлено: 2026-11-23
 Текущий этап: 3 — Сценарии сервиса
-Текущая задача: T-3.2 (done)
+Текущая задача: T-3.3 (done)
 
 ## Сделано
 - Roadmap переведён в `confirmed`. Q6 принят отдельно. Q1–Q5 и Q7–Q13 приняты 2026-11-23 вариантами по умолчанию.
@@ -18,9 +18,10 @@
 - T-2.4 ✅ Мок `POST /mock/notifications` шлёт JSON §B (`applicationId`, `subscriberId`, `frequency`, `status`, `version`, `timeStamp`) одним HTTP POST. URL по умолчанию — `SERVICE_WEBHOOK_URL`. Повтор ручки шлёт событие снова. Недоступный приёмник даёт 502 и `E1000`, `/health` остаётся 200. Приёмник для демо и тестов: `POST /mock/inbox`, чтение `GET /mock/inbox`.
 - T-3.1 ✅ `POST /subscribers` принимает `{"msisdn":"tel:…"}`. Невалидный id отвергается до Platform и не пишет строку. Уже ACTIVE — без Platform и без второго welcome (Q9). Новый: `action:"1"`, при `S1000` запись ACTIVE и welcome «Daily Pass is active». Таймаут Platform не делает ACTIVE и не шлёт welcome. CSRF на этой ручке выключен: контракт JSON/`curl`, не браузерная форма.
 - T-3.2 ✅ `GET /subscribers/{subscriberId}` отдаёт локальный статус. После opt-in — `ACTIVE`. Неизвестный валидный id — 404 «не найден», без чужого состояния. Мусорный id — 400 до чтения БД. Platform не вызывается.
+- T-3.3 ✅ `POST /jobs/daily-charge` списывает только ACTIVE. Ключ дня — UTC `externalTrxId`. На `S1000` пишется попытка и receipt с `referenceId` мока. Второй запуск в тот же день не создаёт второй успех и не шлёт debit с новым ключом. INACTIVE в выборку не входит. Таймаут не пишет попытку; повтор использует тот же ключ. Плата `DAILY_FEE_AMOUNT` / `DAILY_FEE_CURRENCY` из env.
 
 ## В работе / дальше
-- Следующая задача этапа 3: T-3.3 успешное списание не больше одного раза в день.
+- Следующая задача этапа 3: T-3.4 разная обработка E1326 и E1308.
 
 ## Принятые решения и допущения
 - Q1–Q13 приняты. Q6: только HTTP-эндпоинты, UI не делаем, сценарии — задокументированные `curl`. Пути: `POST /subscribers`, `GET /subscribers/{subscriberId}`, `POST /jobs/daily-charge`, `POST /webhooks/subscription`, `POST /webhooks/mo`, `GET /charges`. Остальные — варианты по умолчанию из `docs/spec/open-questions.md`: billing day = календарная дата UTC; плата `5.00` `XTS` из env; не больше 3 попыток с паузой 1/2/4 с и тем же `externalTrxId`; статусы `ACTIVE` / `SUSPENDED` / `INACTIVE`; webhook `REGISTERED`→`ACTIVE`, `UNREGISTERED`→`INACTIVE`, `PENDING`/`CHARGE` только запись; SMS-тексты и `sourceAddress` из Q7; MSISDN `^tel:[0-9]+$`; повторный ACTIVE opt-in без Platform и без второго welcome; ключ webhook = `subscriberId`+`status`+`timeStamp`+`frequency`; `E1337` без нового ключа; неизвестный и повторный STOP по Q12; мок — `MOCK_CHARGE_STATUS`, повтор ключа всегда `E1337`.
@@ -34,8 +35,8 @@
 - Q1–Q13 закрыты. Тексты решений — в `docs/spec/open-questions.md`.
 
 ## Последний результат проверок
-- `docker compose exec service composer check` (после пересборки образа service, T-3.2):
+- `docker compose exec service composer check` (после пересборки образа service, T-3.3):
   - php-cs-fixer: 0 files to fix
   - phpstan: OK, no errors
-  - codeception: OK (54 tests, 320 assertions) — 7 api, 5 integration, 12 mock, 30 unit
+  - codeception: OK (59 tests, 426 assertions) — 9 api, 5 integration, 12 mock, 33 unit
 - T-0.1 `tests/integration/health.sh`: 200, затем 503 при остановленной БД, затем снова 200.

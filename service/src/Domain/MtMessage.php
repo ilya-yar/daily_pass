@@ -10,4 +10,13 @@ namespace App\Domain;
 final class MtMessage
 {
     public const WELCOME = 'Daily Pass is active';
+
+    public static function receipt(string $referenceId): string
+    {
+        if ($referenceId === '') {
+            throw new \InvalidArgumentException('Receipt reference id is required.');
+        }
+
+        return 'Charged. Reference: ' . $referenceId;
+    }
 }
