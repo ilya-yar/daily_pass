@@ -56,7 +56,7 @@ final class RunDailyCharge
             $keysBySubscriber[$subscriber->id->value()] = $key;
             $keys[] = $key;
         }
-        $alreadyCharged = array_fill_keys($this->attempts->successfulExternalTrxIds($keys), true);
+        $alreadyCharged = array_fill_keys($this->attempts->completedExternalTrxIds($keys), true);
 
         $charged = 0;
         $skipped = 0;
@@ -117,6 +117,9 @@ final class RunDailyCharge
         if ($status->disposition() === ChargeDisposition::TerminalOk) {
             return $this->recordSuccessfulCharge($subscriber, $key, $result->field('referenceId'), $now);
         }
+        if ($status->code() === 'E1337') {
+            return $this->recordDuplicateCharge($subscriber, $key, $result->field('referenceId'), $now);
+        }
         if ($status->consequence() === ChargeConsequence::Suspend) {
             $this->subscribers->suspend($subscriber->id, $now);
 
@@ -146,6 +149,24 @@ final class RunDailyCharge
         $this->sendReceipt($subscriber, $referenceId);
 
         return true;
+    }
+
+    private function recordDuplicateCharge(
+        Subscriber $subscriber,
+        string $key,
+        ?string $referenceId,
+        \DateTimeImmutable $now,
+    ): bool {
+        try {
+            $this->attempts->recordDuplicate($subscriber->id, $key, $referenceId, $now);
+        } catch (DuplicateChargeAttemptException) {
+            return false;
+        }
+        if ($referenceId !== null && $referenceId !== '') {
+            $this->sendReceipt($subscriber, $referenceId);
+        }
+
+        return false;
     }
 
     private function sendReceipt(Subscriber $subscriber, string $referenceId): void
