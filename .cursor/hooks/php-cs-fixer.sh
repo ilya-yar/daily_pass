@@ -24,15 +24,26 @@ if [[ ! -f "$file" ]]; then
 fi
 
 root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-fixer=""
-if [[ -x "$root/vendor/bin/php-cs-fixer" ]]; then
-  fixer="$root/vendor/bin/php-cs-fixer"
-elif command -v php-cs-fixer >/dev/null 2>&1; then
-  fixer=$(command -v php-cs-fixer)
-else
-  echo "php-cs-fixer is not installed; skipped $file" >&2
+
+if [[ -f /.dockerenv ]]; then
+  if [[ -x "$root/vendor/bin/php-cs-fixer" ]]; then
+    "$root/vendor/bin/php-cs-fixer" fix --path-mode=override "$file" >&2 || true
+  elif [[ -x /app/vendor/bin/php-cs-fixer ]]; then
+    /app/vendor/bin/php-cs-fixer fix --path-mode=override "$file" >&2 || true
+  else
+    echo "php-cs-fixer is not installed; skipped $file" >&2
+  fi
   exit 0
 fi
 
-"$fixer" fix --path-mode=override "$file" >&2
+cd "$root"
+if ! docker compose run --rm --no-deps -T \
+  -v "$file:/tmp/php-cs-fixer-target.php" \
+  -w /app \
+  service \
+  php /app/vendor/bin/php-cs-fixer fix --path-mode=override /tmp/php-cs-fixer-target.php >&2
+then
+  echo "php-cs-fixer in the service container failed; skipped $file" >&2
+fi
+
 exit 0

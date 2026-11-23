@@ -2,5 +2,12 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-cd "$root/service"
-composer check
+
+if [[ -f /.dockerenv ]]; then
+  cd "$root/service"
+  composer check
+  exit 0
+fi
+
+cd "$root"
+docker compose exec -T service composer check
