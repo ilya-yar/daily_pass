@@ -1,7 +1,7 @@
 # Прогресс
 Обновлено: 2026-11-23
-Текущий этап: 1 — Фундамент
-Текущая задача: T-1.3 (done)
+Текущий этап: 1 — Фундамент (завершён)
+Текущая задача: T-1.5 (done)
 
 ## Сделано
 - Roadmap переведён в `confirmed`. Q6 принят отдельно. Q1–Q5 и Q7–Q13 приняты 2026-11-23 вариантами по умолчанию.
@@ -11,9 +11,10 @@
 - T-1.2 ✅ `SubscriberId` принимает только `^tel:[0-9]+$` и хранит строку целиком, без разбора телефонного плана. `Amount` принимает ровно два знака после точки и хранит минорные единицы целым числом.
 - T-1.3 ✅ Коды §E: `S1000` terminal-ok; `E1337` и `E1308` non-retry-able (`E1308` → suspend); `E1326` retry-able → grace/retry; `E1318` retry-able → throttle/backoff. Неизвестный код non-retry-able. Числа попыток здесь нет.
 - T-1.4 ✅ HTTP-клиент Platform: `POST /subscription/send`, `/sms/send`, `/caas/direct/debit`. `applicationId` и `password` только из env (`PLATFORM_APPLICATION_ID`, `PLATFORM_PASSWORD`). Таймауты connect/read: env `PLATFORM_CONNECT_TIMEOUT` и `PLATFORM_READ_TIMEOUT`, иначе 2 с и 5 с. Клиент не ретраит и не меняет `externalTrxId`. Пароль и application id не пишутся в лог.
+- T-1.5 ✅ `externalTrxId` = календарная дата UTC и SHA-256 всего `subscriberId`. Тот же абонент и тот же UTC-день дают тот же ключ. Другой день или другой абонент меняют ключ. Номера попытки и секрета Platform в ключе нет. Время берётся из `Clock`, не из системных часов.
 
 ## В работе / дальше
-- В этапе 1 осталась T-1.5: ключ `externalTrxId` на billing day.
+- Этап 1 завершён. Следующий этап — 2, первая задача T-2.1: мок `POST /subscription/send`.
 
 ## Принятые решения и допущения
 - Q1–Q13 приняты. Q6: только HTTP-эндпоинты, UI не делаем, сценарии — задокументированные `curl`. Пути: `POST /subscribers`, `GET /subscribers/{subscriberId}`, `POST /jobs/daily-charge`, `POST /webhooks/subscription`, `POST /webhooks/mo`, `GET /charges`. Остальные — варианты по умолчанию из `docs/spec/open-questions.md`: billing day = календарная дата UTC; плата `5.00` `XTS` из env; не больше 3 попыток с паузой 1/2/4 с и тем же `externalTrxId`; статусы `ACTIVE` / `SUSPENDED` / `INACTIVE`; webhook `REGISTERED`→`ACTIVE`, `UNREGISTERED`→`INACTIVE`, `PENDING`/`CHARGE` только запись; SMS-тексты и `sourceAddress` из Q7; MSISDN `^tel:[0-9]+$`; повторный ACTIVE opt-in без Platform и без второго welcome; ключ webhook = `subscriberId`+`status`+`timeStamp`+`frequency`; `E1337` без нового ключа; неизвестный и повторный STOP по Q12; мок — `MOCK_CHARGE_STATUS`, повтор ключа всегда `E1337`.
@@ -27,8 +28,8 @@
 - Q1–Q13 закрыты. Тексты решений — в `docs/spec/open-questions.md`.
 
 ## Последний результат проверок
-- `docker compose exec service composer check` (после пересборки образа, T-1.3):
+- `docker compose exec service composer check` (после пересборки образа, T-1.5):
   - php-cs-fixer: 0 files to fix
   - phpstan: OK, no errors
-  - codeception: OK (25 tests, 108 assertions) — 1 api, 5 integration, 19 unit
+  - codeception: OK (30 tests, 121 assertions) — 1 api, 5 integration, 24 unit
 - T-0.1 `tests/integration/health.sh`: 200, затем 503 при остановленной БД, затем снова 200.
