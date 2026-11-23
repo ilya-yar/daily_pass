@@ -16,4 +16,9 @@ final readonly class Subscriber
     {
         return $this->status === SubscriberStatus::Active;
     }
+
+    public function isInactive(): bool
+    {
+        return $this->status === SubscriberStatus::Inactive;
+    }
 }

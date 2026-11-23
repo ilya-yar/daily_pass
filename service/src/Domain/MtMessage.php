@@ -11,6 +11,8 @@ final class MtMessage
 {
     public const WELCOME = 'Daily Pass is active';
 
+    public const GOODBYE = 'Daily Pass is stopped';
+
     public static function receipt(string $referenceId): string
     {
         if ($referenceId === '') {

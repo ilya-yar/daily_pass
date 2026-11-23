@@ -113,11 +113,18 @@ final class InMemorySubscriberRepository implements SubscriberRepository
 
     public int $deactivateCalls = 0;
 
+    public ?string $inactiveOnFindId = null;
+
     public ?DateTimeImmutable $activatedAt = null;
 
     public function find(SubscriberId $id): ?Subscriber
     {
-        return $this->rows[$id->value()] ?? null;
+        $found = $this->rows[$id->value()] ?? null;
+        if ($found !== null && $this->inactiveOnFindId === $id->value()) {
+            return new Subscriber($id, SubscriberStatus::Inactive);
+        }
+
+        return $found;
     }
 
     public function listActive(): array
@@ -164,18 +171,26 @@ final class RecordingPlatformClient implements PlatformClient
     /** @var list<string> */
     public array $optIns = [];
 
+    /** @var list<string> */
+    public array $optOuts = [];
+
     /** @var list<array{0: string, 1: string, 2: string}> */
     public array $sms = [];
 
     public ?PlatformRequestException $optInError = null;
 
+    public ?PlatformRequestException $optOutError = null;
+
     public PlatformResult $optInResult;
+
+    public PlatformResult $optOutResult;
 
     public PlatformResult $smsResult;
 
     public function __construct()
     {
         $this->optInResult = new PlatformResult('S1000', 'SUCCESS', ['subscriptionStatus' => 'REGISTERED']);
+        $this->optOutResult = new PlatformResult('S1000', 'SUCCESS', ['subscriptionStatus' => 'UNREGISTERED']);
         $this->smsResult = new PlatformResult('S1000', 'SUCCESS', []);
     }
 
@@ -191,7 +206,12 @@ final class RecordingPlatformClient implements PlatformClient
 
     public function optOut(string $subscriberId): PlatformResult
     {
-        throw new \RuntimeException('opt-out is not part of this use case.');
+        $this->optOuts[] = $subscriberId;
+        if ($this->optOutError !== null) {
+            throw $this->optOutError;
+        }
+
+        return $this->optOutResult;
     }
 
     public function sendSms(string $message, string $destinationAddress, string $sourceAddress): PlatformResult

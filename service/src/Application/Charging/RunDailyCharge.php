@@ -102,6 +102,11 @@ final class RunDailyCharge
      */
     private function attemptDebit(Subscriber $subscriber, string $key, \DateTimeImmutable $now): ?bool
     {
+        $current = $this->subscribers->find($subscriber->id);
+        if ($current === null || !$current->isActive()) {
+            return false;
+        }
+
         try {
             $result = $this->platform->debit(
                 $key,

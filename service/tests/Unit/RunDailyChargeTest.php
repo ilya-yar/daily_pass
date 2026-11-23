@@ -48,6 +48,59 @@ final class RunDailyChargeTest extends \Codeception\Test\Unit
         $this->assertSame(['S1000'], $attempts->statuses);
     }
 
+    public function testOptOutBeforeDebitSkipsChargeAndKeepsTheSameKeyForThePeer(): void
+    {
+        $id = SubscriberId::fromString('tel:1000000001');
+        $peer = SubscriberId::fromString('tel:1000000002');
+        $clock = new FixedClock(new DateTimeImmutable('2026-11-24 15:00:00 UTC'));
+        $expectedKey = ExternalTrxId::forBillingDay($id, $clock->now())->value();
+        $peerKey = ExternalTrxId::forBillingDay($peer, $clock->now())->value();
+        $subscribers = new InMemorySubscriberRepository();
+        $subscribers->activate($id, $clock->now());
+        $subscribers->activate($peer, $clock->now());
+        $subscribers->inactiveOnFindId = $id->value();
+        $attempts = new InMemoryChargeAttemptRepository();
+        $platform = new ChargingPlatformClient();
+
+        $result = $this->job($subscribers, $attempts, $platform, $clock)->execute();
+
+        $this->assertSame(1, $result->charged);
+        $this->assertSame([$peerKey], $platform->debitKeys);
+        $this->assertSame(['S1000'], $attempts->statuses);
+        $this->assertNotSame($expectedKey, $peerKey);
+        $this->assertSame([], $attempts->successfulExternalTrxIds([$expectedKey]));
+    }
+
+    public function testInFlightDebitRecordsAtMostOneSuccessWithoutANewKey(): void
+    {
+        $id = SubscriberId::fromString('tel:1000000001');
+        $peer = SubscriberId::fromString('tel:1000000002');
+        $clock = new FixedClock(new DateTimeImmutable('2026-11-24 15:00:00 UTC'));
+        $expectedKey = ExternalTrxId::forBillingDay($id, $clock->now())->value();
+        $peerKey = ExternalTrxId::forBillingDay($peer, $clock->now())->value();
+        $subscribers = new InMemorySubscriberRepository();
+        $subscribers->activate($id, $clock->now());
+        $subscribers->activate($peer, $clock->now());
+        $attempts = new InMemoryChargeAttemptRepository();
+        $platform = new ChargingPlatformClient();
+        $platform->beforeDebit = static function (string $subscriberId) use ($subscribers, $id, $clock): void {
+            if ($subscriberId === $id->value()) {
+                $subscribers->deactivate($id, $clock->now());
+            }
+        };
+
+        $first = $this->job($subscribers, $attempts, $platform, $clock)->execute();
+        $this->assertSame(2, $first->charged);
+        $this->assertSame([$expectedKey, $peerKey], $platform->debitKeys);
+        $this->assertSame(1, count($attempts->successfulExternalTrxIds([$expectedKey])));
+        $this->assertSame(1, count($attempts->successfulExternalTrxIds([$peerKey])));
+
+        $second = $this->job($subscribers, $attempts, $platform, $clock)->execute();
+        $this->assertSame(0, $second->charged);
+        $this->assertSame([$expectedKey, $peerKey], $platform->debitKeys);
+        $this->assertSame(1, count($attempts->successfulExternalTrxIds([$expectedKey])));
+    }
+
     public function testInactiveSubscriberIsNotCharged(): void
     {
         $subscribers = new InMemorySubscriberRepository();
@@ -341,6 +394,9 @@ final class ChargingPlatformClient implements PlatformClient
     /** @var list<string> */
     public array $debitReferences = [];
 
+    /** @var (\Closure(string): void)|null */
+    public $beforeDebit = null;
+
     public function optIn(string $subscriberId): PlatformResult
     {
         throw new \RuntimeException('opt-in is not part of this use case.');
@@ -364,6 +420,9 @@ final class ChargingPlatformClient implements PlatformClient
         string $amount,
         string $currency,
     ): PlatformResult {
+        if ($this->beforeDebit !== null) {
+            ($this->beforeDebit)($subscriberId);
+        }
         $this->debitKeys[] = $externalTrxId;
         if ($this->debitError !== null) {
             throw $this->debitError;

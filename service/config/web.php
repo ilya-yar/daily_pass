@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Application\Charging\Delay;
 use App\Application\Charging\RunDailyCharge;
 use App\Application\OptIn\OptInSubscriber;
+use App\Application\OptOut\OptOutSubscriber;
 use App\Application\Platform\PlatformClient;
 use App\Application\Status\GetSubscriberStatus;
 use App\Application\Webhook\HandleSubscriptionNotification;
@@ -105,6 +106,19 @@ return [
             GetSubscriberStatus::class => static function (Container $container): GetSubscriberStatus {
                 return new GetSubscriberStatus($container->get(SubscriberRepository::class));
             },
+            OptOutSubscriber::class => static function (Container $container): OptOutSubscriber {
+                $sourceAddress = getenv('SMS_SOURCE_ADDRESS');
+                if (!is_string($sourceAddress) || $sourceAddress === '') {
+                    throw new RuntimeException('Environment variable SMS_SOURCE_ADDRESS is required.');
+                }
+
+                return new OptOutSubscriber(
+                    $container->get(SubscriberRepository::class),
+                    $container->get(PlatformClient::class),
+                    $container->get(Clock::class),
+                    $sourceAddress,
+                );
+            },
             HandleSubscriptionNotification::class => static function (Container $container): HandleSubscriptionNotification {
                 return new HandleSubscriptionNotification(
                     $container->get(SubscriptionNotificationRepository::class),
@@ -151,6 +165,7 @@ return [
                 'GET subscribers/<subscriberId:.+>' => 'subscribers/view',
                 'POST jobs/daily-charge' => 'jobs/run-daily-charge',
                 'POST webhooks/subscription' => 'webhooks/subscription',
+                'POST webhooks/mo' => 'webhooks/mo',
             ],
         ],
         'log' => [
