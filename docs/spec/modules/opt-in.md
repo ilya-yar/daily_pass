@@ -46,13 +46,13 @@ REQ-API-003: реализовать этот запрос и разобрать 
 ## Бизнес-правила и валидации
 
 - MSISDN на входе: `tel:` + digits, иначе отказ (REQ-SEC-003).
-- Уже ACTIVE — не double-subscribe (REQ-OPTIN-005). Что именно не повторять (вызов Platform, SMS, оба) ТЗ не уточняет. См. Q9.
+- Уже ACTIVE — не double-subscribe (REQ-OPTIN-005). Принятый Q9: не вызывать Platform и не слать второй welcome, вернуть текущее состояние.
 - Ответ Platform не `S1000` для opt-in в ТЗ не описан.
 
 ## Интеграции
 
 - Platform `POST /subscription/send`.
-- Platform `POST /sms/send` — текст welcome не задан. См. Q7 и `modules/sms.md`.
+- Platform `POST /sms/send`. Текст welcome в ТЗ не задан. Принятый Q7: «Daily Pass is active».
 
 ## Права доступа
 
@@ -64,7 +64,4 @@ REQ-API-003: реализовать этот запрос и разобрать 
 
 ## Вопросы и допущения
 
-- Q7 текст SMS и `sourceAddress`.
-- Q8 формат masked `subscriberId` против валидации `tel:` + digits.
-- Q9 поведение повторного opt-in.
-- Q6 принято: точка входа — `POST /subscribers`, без UI. Конкретный путь в ТЗ не задан.
+- Q6, Q7, Q8, Q9 приняты. Точка входа — `POST /subscribers`, без UI. MSISDN — `^tel:[0-9]+$`. Тексты — в `open-questions.md`.

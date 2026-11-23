@@ -27,7 +27,7 @@
 - REQ-SEC-003: Validate MSISDN format (`tel:` + digits) and amount (2-dp); reject junk at the boundary.
 - REQ-SEC-004: The code must work when `subscriberId` is a stable masked alias, not a real number (don't assume you can parse a phone number out of it).
 
-Оба требования обязательны. Как они стыкуются (можно ли требовать `tel:` + digits у masked alias), в ТЗ не разведено. См. Q8.
+Оба требования обязательны. Как они стыкуются, в ТЗ не разведено. Принятый Q8: вход `^tel:[0-9]+$`, значение хранится и уходит в Platform целиком, телефонный план не разбирается.
 
 ## Идемпотентность денег
 

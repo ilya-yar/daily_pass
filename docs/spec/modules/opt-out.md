@@ -28,14 +28,14 @@ Subscriber: ACTIVE → **INACTIVE**. Ответ Platform: `subscriptionStatus` `
 
 - Срабатывание — входящее MO с текстом `STOP`. Другие тексты MO в ТЗ не описаны.
 - Гонка: opt-out и уже выполняющийся charging job. Итог обязан быть «не списан после opt-out». Механизм (блокировка, проверка статуса перед дебетом, тот же `externalTrxId`) ТЗ не предписывает.
-- Повторный `STOP` явно не описан. Нельзя вывести из текста, что второй goodbye обязателен или запрещён. См. Q12.
+- Повторный `STOP` в ТЗ не описан. Принятый Q12: уже INACTIVE не вызывает Platform повторно и не шлёт второй goodbye. Неизвестный `sourceAddress` отвечает `S1000` без Platform и без SMS.
 - Ошибка `POST /subscription/send` при opt-out не описана.
 
 ## Интеграции
 
 - Вход: MO endpoint нашего сервиса (§C).
 - Выход: `POST /subscription/send` action `"0"`.
-- Выход: `POST /sms/send` goodbye. Текст не задан (Q7).
+- Выход: `POST /sms/send` goodbye. Текст в ТЗ не задан. Принятый Q7: «Daily Pass is stopped».
 
 ## Права доступа
 
@@ -47,5 +47,4 @@ REQ-TEST-001 включает opt-out-then-charge race. Это обязател�
 
 ## Вопросы и допущения
 
-- Q7 текст goodbye.
-- Q12 повторный STOP и STOP для неизвестного `subscriberId`.
+- Q7 и Q12 приняты вариантами по умолчанию. Тексты — в `open-questions.md`.

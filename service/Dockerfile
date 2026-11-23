@@ -13,7 +13,8 @@ COPY composer.json composer.lock ./
 RUN composer install --no-interaction --prefer-dist --no-scripts
 
 COPY . .
+RUN chmod +x bin/yii bin/serve.sh
 
 EXPOSE 8080
 
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "public", "public/router.php"]
+CMD ["sh", "bin/serve.sh"]

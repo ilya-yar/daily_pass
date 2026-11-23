@@ -10,7 +10,7 @@
 
 ## Сущности и статусы
 
-Состояние Subscriber: как минимум ACTIVE и INACTIVE. Suspend — см. Q4. В ответ входит «your view», не вид Platform.
+Состояние Subscriber: как минимум ACTIVE и INACTIVE. Принятый Q4 добавляет `SUSPENDED`. В ответ входит «your view», не вид Platform.
 
 ## Требования
 

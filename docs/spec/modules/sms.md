@@ -31,7 +31,7 @@
 ## Бизнес-правила и валидации
 
 - `encoding` исходящей SMS в примере: `"0"`.
-- Текст `message`, значение `sourceAddress` и shortcode не заданы. См. Q7.
+- Текст `message` и `sourceAddress` в ТЗ не заданы. Принятый Q7: `sourceAddress` из env; welcome «Daily Pass is active»; receipt «Charged. Reference: {referenceId}»; goodbye «Daily Pass is stopped»; `encoding` = `"0"`.
 - DLR handling вне скоупа (REQ-OVW-006). Доставку SMS подтверждать не требуется.
 - Видимость welcome в моке означает, что мок сохраняет принятые MT и их можно посмотреть при демо (строка 106). Способ просмотра не задан. См. A-SMS-LOG.
 
@@ -50,5 +50,5 @@
 
 ## Вопросы и допущения
 
-- Q7: тексты и `sourceAddress`.
+- Q7 принят вариантом по умолчанию. Текст — в `open-questions.md`.
 - A-SMS-LOG: мок хранит MT и отдаёт их способом, пригодным для демо (список или лог). Это способ выполнить «visible in the mock», не отдельное требование ТЗ.

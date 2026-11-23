@@ -12,7 +12,7 @@
 
 Charge attempt: status, `externalTrxId`, `referenceId`, timestamp (REQ-AUD-001).
 
-На `E1308` подписчик suspend (глагол из ТЗ). См. Q4.
+На `E1308` подписчик suspend (глагол из ТЗ). Принятый Q4: локальный статус `SUSPENDED`.
 
 ## Требования
 
@@ -30,7 +30,7 @@ Charge attempt: status, `externalTrxId`, `referenceId`, timestamp (REQ-AUD-001).
 - REQ-CHG-012: Distinguish retry-able vs non-retry-able codes. Bounded retries with backoff. Never retry a non-retry-able error into a double charge.
 - REQ-TEST-002: Running the daily job twice in the same day charges once (prove it in a test).
 
-Сумма и валюта дневной платы в описании продукта не заданы. В примере §D стоят `"5.00"` и `"XTS"`. См. Q2. Пока это пример контракта, а не утверждённый тариф.
+Сумма и валюта дневной платы в описании продукта не заданы. В примере §D стоят `"5.00"` и `"XTS"`. Принятый Q2: плата `5.00` `XTS` из env.
 
 ## Контракт §D — `POST /caas/direct/debit`
 
@@ -68,7 +68,7 @@ Amount на границе — 2 decimal places (REQ-SEC-003).
 
 > Design note: `E1326` and `E1308` both mean "not charged", but call for **different** handling — grace/retry vs. suspend. Decide your policy deliberately.
 
-Форма тела ответа для кодов ошибки, кроме общего `statusCode` + `statusDetail` (REQ-API-002), не задана. См. Q11 про `E1337`.
+Форма тела ответа для кодов ошибки, кроме общего `statusCode` + `statusDetail` (REQ-API-002), не задана. Принятый Q11: `E1337` не порождает новый ключ и второй debit; `referenceId` сохраняется, только если он есть в ответе.
 
 ## Бизнес-правила и валидации
 
@@ -76,8 +76,8 @@ Amount на границе — 2 decimal places (REQ-SEC-003).
 - Повтор job в тот же billing day не создаёт второе списание. Для логического повтора тот же `externalTrxId`; новый `externalTrxId` Platform воспримет как новое списание.
 - `E1326` и `E1308` обрабатываются по-разному (строка 110): retry/grace против suspend.
 - Non-retry-able (`E1337`, `E1308`) нельзя ретраить так, чтобы получилось второе списание.
-- Retry-able (`E1326`, `E1318`) — ограниченные повторы с backoff. Числа не заданы. См. Q3.
-- Граница billing day не задана. См. Q1.
+- Retry-able (`E1326`, `E1318`) — ограниченные повторы с backoff. Принятый Q3: не больше 3 попыток, пауза 1/2/4 с, тот же `externalTrxId`.
+- Граница billing day в ТЗ не задана. Принятый Q1: календарная дата UTC.
 - После opt-out подписчик не списывается, включая гонку с уже идущим job. Правило — в `modules/opt-out.md` (REQ-OUT-005).
 
 ## Интеграции
@@ -95,9 +95,5 @@ Amount на границе — 2 decimal places (REQ-SEC-003).
 
 ## Вопросы и допущения
 
-- Q1 billing day.
-- Q2 сумма и валюта.
-- Q3 числа grace/retry/backoff.
-- Q4 статус suspend.
-- Q11 смысл `E1337`, если локального успеха ещё нет.
+- Q1, Q2, Q3, Q4, Q11 приняты вариантами по умолчанию. Тексты — в `open-questions.md`.
 - A-INSTRUMENT: в запросе передавать `paymentInstrumentName` = `Mobile Account`, как в единственном примере.

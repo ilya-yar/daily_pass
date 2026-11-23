@@ -20,13 +20,7 @@ return [
             'cookieValidationKey' => $required('COOKIE_VALIDATION_KEY'),
             'enableCsrfValidation' => true,
         ],
-        'db' => [
-            'class' => yii\db\Connection::class,
-            'dsn' => $required('DB_DSN'),
-            'username' => $required('DB_USER'),
-            'password' => $required('DB_PASSWORD'),
-            'charset' => 'utf8',
-        ],
+        'db' => require __DIR__ . '/db.php',
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
