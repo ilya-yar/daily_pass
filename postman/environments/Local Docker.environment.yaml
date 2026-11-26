@@ -1,0 +1,35 @@
+name: Local Docker
+values:
+  - key: service_url
+    value: 'http://localhost:18080'
+    enabled: true
+    type: default
+    description: Host URL of the Daily Pass service
+  - key: mock_url
+    value: 'http://localhost:18081'
+    enabled: true
+    type: default
+    description: Host URL of the platform mock
+  - key: application_id
+    value: APP_000123
+    enabled: true
+    type: default
+    description: MOCK_APPLICATION_ID / PLATFORM_APPLICATION_ID from compose
+  - key: platform_password
+    value: ''
+    enabled: true
+    type: secret
+    description: PLATFORM_PASSWORD from docker-compose.yml (local placeholder)
+  - key: source_address
+    value: '1234'
+    enabled: true
+    type: default
+    description: SMS_SOURCE_ADDRESS
+  - key: daily_fee_amount
+    value: '5.00'
+    enabled: true
+    type: default
+  - key: daily_fee_currency
+    value: XTS
+    enabled: true
+    type: default

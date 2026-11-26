@@ -1,0 +1,31 @@
+$kind: http-request
+method: POST
+url: '{{mock_url}}/caas/direct/debit'
+order: 6000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "applicationId": "{{application_id}}",
+      "password": "{{platform_password}}",
+      "externalTrxId": "{{external_trx_id}}",
+      "subscriberId": "{{msisdn}}",
+      "paymentInstrumentName": "Mobile Account",
+      "amount": "{{daily_fee_amount}}",
+      "currency": "{{daily_fee_currency}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      pm.collectionVariables.set('external_trx_id', 'trx-' + Date.now());
+  - type: afterResponse
+    code: |-
+      pm.test('debit answered', () => {
+        pm.response.to.have.status(200);
+        const body = pm.response.json();
+        pm.expect(body.statusCode).to.be.a('string');
+        pm.expect(body).to.not.have.property('password');
+      });

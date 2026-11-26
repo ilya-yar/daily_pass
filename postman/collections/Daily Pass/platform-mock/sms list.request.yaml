@@ -1,0 +1,13 @@
+$kind: http-request
+method: GET
+url: '{{mock_url}}/sms'
+order: 4000
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('sms log listed', () => {
+        pm.response.to.have.status(200);
+        const body = pm.response.json();
+        pm.expect(body.messages).to.be.an('array');
+        pm.expect(pm.response.text()).to.not.include('password');
+      });

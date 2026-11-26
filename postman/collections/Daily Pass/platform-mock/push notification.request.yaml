@@ -1,0 +1,24 @@
+$kind: http-request
+method: POST
+url: '{{mock_url}}/mock/notifications'
+order: 7000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "callbackUrl": "{{mock_url}}/mock/inbox",
+      "subscriberId": "{{msisdn}}",
+      "status": "{{notification_status}}",
+      "frequency": "DAILY",
+      "timeStamp": "2026-11-26T12:00:00.000+00:00"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('notification pushed', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().statusCode).to.eql('S1000');
+      });

@@ -1,0 +1,19 @@
+$kind: http-request
+method: GET
+url: '{{service_url}}/charges?msisdn={{msisdn}}&date={{billing_date}}'
+order: 7000
+queryParams:
+  - key: msisdn
+    value: '{{msisdn}}'
+  - key: date
+    value: '{{billing_date}}'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('charge lookup answered', () => {
+        pm.response.to.have.status(200);
+        const body = pm.response.json();
+        pm.expect(body.msisdn).to.eql(pm.collectionVariables.get('msisdn'));
+        pm.expect(body.date).to.eql(pm.collectionVariables.get('billing_date'));
+        pm.expect(body.charged).to.be.a('boolean');
+      });

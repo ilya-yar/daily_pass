@@ -1,0 +1,4 @@
+$kind: collection
+name: platform-mock
+description: Carrier platform mock on {{mock_url}}. §A/C/D bodies need applicationId and password.
+order: 2000

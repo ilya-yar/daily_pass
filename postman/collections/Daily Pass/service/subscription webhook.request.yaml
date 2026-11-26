@@ -1,0 +1,25 @@
+$kind: http-request
+method: POST
+url: '{{service_url}}/webhooks/subscription'
+order: 5000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "applicationId": "{{application_id}}",
+      "subscriberId": "{{msisdn}}",
+      "frequency": "DAILY",
+      "status": "{{notification_status}}",
+      "version": "1.0",
+      "timeStamp": "2026-11-26T12:00:00.000+00:00"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('webhook accepted', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().statusCode).to.eql('S1000');
+      });

@@ -1,0 +1,13 @@
+$kind: http-request
+method: POST
+url: '{{service_url}}/jobs/daily-charge'
+order: 4000
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('job finished', () => {
+        pm.response.to.have.status(200);
+        const body = pm.response.json();
+        pm.expect(body.charged).to.be.a('number');
+        pm.expect(body.skipped).to.be.a('number');
+      });

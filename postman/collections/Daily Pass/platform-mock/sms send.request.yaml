@@ -1,0 +1,26 @@
+$kind: http-request
+method: POST
+url: '{{mock_url}}/sms/send'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "applicationId": "{{application_id}}",
+      "password": "{{platform_password}}",
+      "message": "Daily Pass is active",
+      "destinationAddresses": ["{{msisdn}}"],
+      "version": "1.0",
+      "sourceAddress": "{{source_address}}",
+      "encoding": "0"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('sms send ok', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().statusCode).to.eql('S1000');
+      });

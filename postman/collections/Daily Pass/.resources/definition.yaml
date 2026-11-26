@@ -1,0 +1,29 @@
+$kind: collection
+name: Daily Pass
+description: |-
+  Smoke checks for every HTTP route of the Daily Pass service and the carrier
+  platform mock. Select the Local Docker environment (host ports 18080 / 18081).
+
+  Suggested order for a first-time run: service health, create subscriber, get
+  subscriber, daily charge, get charges, then mock health and the mock
+  operator routes. Set platform_password in the environment to the same value
+  as PLATFORM_PASSWORD in docker-compose.yml before calling mock §A/C/D bodies.
+variables:
+  - key: msisdn
+    value: 'tel:1000000001'
+  - key: billing_date
+    value: ''
+  - key: notification_status
+    value: REGISTERED
+  - key: subscription_action
+    value: '1'
+  - key: charge_status_code
+    value: S1000
+  - key: external_trx_id
+    value: trx-demo-1
+scripts:
+  - type: http:beforeRequest
+    code: |-
+      if (!pm.collectionVariables.get('billing_date')) {
+        pm.collectionVariables.set('billing_date', new Date().toISOString().slice(0, 10));
+      }

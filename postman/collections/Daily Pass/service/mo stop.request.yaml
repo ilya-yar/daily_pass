@@ -1,0 +1,24 @@
+$kind: http-request
+method: POST
+url: '{{service_url}}/webhooks/mo'
+order: 6000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "applicationId": "{{application_id}}",
+      "sourceAddress": "{{msisdn}}",
+      "message": "STOP",
+      "encoding": "0",
+      "version": "1.0"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('MO accepted', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().statusCode).to.eql('S1000');
+      });

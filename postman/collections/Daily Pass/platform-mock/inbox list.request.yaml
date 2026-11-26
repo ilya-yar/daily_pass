@@ -1,0 +1,11 @@
+$kind: http-request
+method: GET
+url: '{{mock_url}}/mock/inbox'
+order: 9000
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('inbox listed', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().events).to.be.an('array');
+      });

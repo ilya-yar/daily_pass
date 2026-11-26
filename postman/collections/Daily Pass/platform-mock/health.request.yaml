@@ -1,0 +1,11 @@
+$kind: http-request
+method: GET
+url: '{{mock_url}}/health'
+order: 1000
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('mock is healthy', () => {
+        pm.response.to.have.status(200);
+        pm.expect(pm.response.json().status).to.eql('ok');
+      });

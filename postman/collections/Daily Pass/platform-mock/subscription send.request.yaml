@@ -1,0 +1,26 @@
+$kind: http-request
+method: POST
+url: '{{mock_url}}/subscription/send'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "applicationId": "{{application_id}}",
+      "password": "{{platform_password}}",
+      "version": "1.0",
+      "action": "{{subscription_action}}",
+      "subscriberId": "{{msisdn}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('subscription send ok', () => {
+        pm.response.to.have.status(200);
+        const body = pm.response.json();
+        pm.expect(body.statusCode).to.eql('S1000');
+        pm.expect(body).to.not.have.property('password');
+      });

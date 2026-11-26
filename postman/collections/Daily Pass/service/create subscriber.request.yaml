@@ -1,0 +1,22 @@
+$kind: http-request
+method: POST
+url: '{{service_url}}/subscribers'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "msisdn": "{{msisdn}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('opt-in accepted', () => {
+        pm.response.to.have.status(200);
+        const body = pm.response.json();
+        pm.expect(body.subscriberId).to.eql(pm.collectionVariables.get('msisdn'));
+        pm.expect(body.status).to.be.oneOf(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
+      });

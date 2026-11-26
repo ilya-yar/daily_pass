@@ -1,0 +1,4 @@
+$kind: collection
+name: service
+description: Service HTTP API on {{service_url}}. No caller authentication.
+order: 1000
